@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { CalendarGrid } from "./CalendarGrid";
 import { EventModal } from "./EventModal";
 import { EventList } from "./EventList";
@@ -15,6 +15,7 @@ export const Calendar: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [events, setEvents] = useState<DayEvents>({});
   const [showModal, setShowModal] = useState(false);
+  const eventSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const storedEvents = localStorage.getItem("calendarEvents");
@@ -37,6 +38,13 @@ export const Calendar: React.FC = () => {
 
   const handleDayClickAction = (date: Date) => {
     setSelectedDate(date);
+    // Add smooth scroll after state update
+    setTimeout(() => {
+      eventSectionRef.current?.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }, 100);
   };
 
   const handleAddEvent = () => {
@@ -123,12 +131,16 @@ export const Calendar: React.FC = () => {
           currentDate={currentDate}
           onDayClickAction={handleDayClickAction}
           events={events}
+          selectedDate={selectedDate}  // Add this prop
         />
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
         {selectedDate && (
-          <div className="mt-6 max-w-4xl w-full bg-gray-800 rounded-lg shadow-lg p-6">
+          <div 
+            ref={eventSectionRef}
+            className="mt-6 max-w-4xl w-full bg-gray-800 rounded-lg shadow-lg p-6 scroll-mt-8"
+          >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-indigo-300">
                 Events for {selectedDate.toDateString()}
