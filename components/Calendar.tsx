@@ -101,22 +101,50 @@ export const Calendar: React.FC = () => {
     if (selectedDate) {
       try {
         setSyncStatus('syncing');
-        const { error } = await supabase
+        
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) throw new Error('No authenticated user');
+
+        const { data, error: insertError } = await supabase
           .from('events')
           .insert({
+            user_id: user.id,
             date: formatDate(selectedDate),
             name: event.name,
             start_time: event.startTime,
             end_time: event.endTime,
             description: event.description,
             category: event.category,
-          });
+          })
+          .select()
+          .single();
 
-        if (error) throw error;
+        if (insertError) throw insertError;
+
+        // Update local state with new event
+        if (data) {
+          const newEvents = { ...events };
+          const dateKey = formatDate(selectedDate);
+          if (!newEvents[dateKey]) {
+            newEvents[dateKey] = [];
+          }
+          newEvents[dateKey].push({
+            id: data.id,
+            name: data.name,
+            startTime: data.start_time,
+            endTime: data.end_time,
+            description: data.description,
+            category: data.category,
+          });
+          setEvents(newEvents);
+        }
+
         setShowModal(false);
         setSyncStatus('synced');
       } catch (error) {
         console.error('Error saving event:', error);
+        alert(error instanceof Error ? error.message : 'Failed to save event');
         setSyncStatus('error');
       }
     }
@@ -139,28 +167,42 @@ export const Calendar: React.FC = () => {
   };
 
   const handleDragEnd = (result: DropResult) => {
-    if (!result.destination || result.type !== "EVENT") return;
-
-    const sourceDate = result.source.droppableId;
-    const destDate = result.destination.droppableId;
+    if (!result.destination) return;
     
-    if (sourceDate === destDate) return;
-
-    const updatedEvents = { ...events };
-    const sourceEvents = [...(updatedEvents[sourceDate] || [])];
-    const [movedEvent] = sourceEvents.splice(result.source.index, 1);
-
-    if (!updatedEvents[destDate]) {
-      updatedEvents[destDate] = [];
+    const { source, destination } = result;
+    
+    // Skip if dropped in same location
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
+      return;
     }
-    
-    updatedEvents[sourceDate] = sourceEvents;
-    updatedEvents[destDate] = [
-      ...updatedEvents[destDate],
-      movedEvent
-    ];
 
-    setEvents(updatedEvents);
+    try {
+      setSyncStatus('syncing');
+      
+      const sourceDate = source.droppableId;
+      const destDate = destination.droppableId;
+      const updatedEvents = { ...events };
+
+      // Get the event being moved
+      const [movedEvent] = updatedEvents[sourceDate].splice(source.index, 1);
+
+      // Ensure destination array exists
+      if (!updatedEvents[destDate]) {
+        updatedEvents[destDate] = [];
+      }
+
+      // Insert at new position
+      updatedEvents[destDate].splice(destination.index, 0, movedEvent);
+
+      setEvents(updatedEvents);
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error('Error during drag and drop:', error);
+      setSyncStatus('error');
+    }
   };
 
   const handleExport = (format: 'json' | 'csv') => {
@@ -194,34 +236,37 @@ export const Calendar: React.FC = () => {
             {syncStatus === 'error' && 'Sync error'}
           </div>
         </div>
-        <CalendarGrid
-          currentDate={currentDate}
-          onDayClickAction={handleDayClickAction}
-          events={events}
-          selectedDate={selectedDate}
-        />
-      </div>
-
-      <DragDropContext onDragEnd={handleDragEnd}>
-        {selectedDate && (
-          <div 
-            ref={eventSectionRef}
-            className="mt-6 max-w-4xl w-full bg-gray-800 rounded-lg shadow-lg p-6 scroll-mt-8"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-indigo-300">
-                Events for {selectedDate.toDateString()}
-              </h2>
-              <Button onClick={handleAddEvent}>Add Event</Button>
-            </div>
-            <EventList
-              events={events[formatDate(selectedDate)] || []}
-              onDeleteEventAction={handleDeleteEventAction}
-              date={formatDate(selectedDate)}
+        
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="w-full space-y-6">
+            <CalendarGrid
+              currentDate={currentDate}
+              onDayClickAction={handleDayClickAction}
+              events={events}
+              selectedDate={selectedDate}
             />
+
+            {selectedDate && (
+              <div 
+                ref={eventSectionRef}
+                className="mt-6 max-w-4xl w-full bg-gray-800 rounded-lg shadow-lg p-6 scroll-mt-8"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-indigo-300">
+                    Events for {selectedDate.toDateString()}
+                  </h2>
+                  <Button onClick={handleAddEvent}>Add Event</Button>
+                </div>
+                <EventList
+                  events={events[formatDate(selectedDate)] || []}
+                  onDeleteEventAction={handleDeleteEventAction}
+                  date={formatDate(selectedDate)}
+                />
+              </div>
+            )}
           </div>
-        )}
-      </DragDropContext>
+        </DragDropContext>
+      </div>
 
       {showModal && selectedDate && (
         <EventModal

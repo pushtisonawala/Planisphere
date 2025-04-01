@@ -19,24 +19,31 @@ interface EventListProps {
 
 export const EventList: React.FC<EventListProps> = ({ events, onDeleteEventAction, date }) => {
   return (
-    <Droppable droppableId={date}>
-      {(provided) => (
+    <Droppable 
+      droppableId={date} 
+      type="EVENT"
+      isDropDisabled={false}
+      isCombineEnabled={false}
+      ignoreContainerClipping={false}
+    >
+      {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
-          className="space-y-2"
+          className="space-y-2 min-h-[50px]"
         >
           {events.length === 0 ? (
             <div className="text-gray-400 text-center">No events for this day.</div>
           ) : (
             events.map((event, index) => (
               <Draggable key={event.id} draggableId={event.id} index={index}>
-                {(provided) => (
+                {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
-                    className={`${categoryColors[event.category]} bg-opacity-20 p-4 rounded-lg shadow`}
+                    className={`${categoryColors[event.category]} bg-opacity-20 p-4 rounded-lg shadow
+                      ${snapshot.isDragging ? 'opacity-50' : ''}`}
                   >
                     <div className="flex justify-between items-start">
                       <div className="text-white">

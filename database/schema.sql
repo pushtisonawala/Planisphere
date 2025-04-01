@@ -131,14 +131,30 @@ CREATE POLICY "Users can view own and shared events" ON public.events
         auth.uid() = ANY(shared_with)
     );
 
-CREATE POLICY "Users can insert own events" ON public.events
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- Drop existing event policies
+DROP POLICY IF EXISTS "Users can insert own events" ON public.events;
+
+-- Create updated policy for event insertion
+CREATE POLICY "Users can insert own events"
+ON public.events
+FOR INSERT
+WITH CHECK (
+    auth.uid() = user_id
+    AND user_id IS NOT NULL
+);
 
 CREATE POLICY "Users can update own events" ON public.events
     FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own events" ON public.events
     FOR DELETE USING (auth.uid() = user_id);
+
+-- Grant necessary permissions for events table
+GRANT ALL ON public.events TO authenticated;
+
+-- Reset RLS for events table
+ALTER TABLE public.events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for audit log
 CREATE POLICY "Users can view own event audit logs" ON public.event_audit_log
