@@ -1,13 +1,61 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Calendar } from "../components/Calendar";
+import { AuthForm } from "../components/auth/AuthForm";
+import { Button } from "../components/ui/button"; // Fix the import path
+import { supabase } from "../utils/supabase";
 
 const CalendarPage = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setIsAuthenticated(!!session);
+      } catch (error) {
+        console.error('Auth error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-indigo-400 text-xl animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthForm />;
+  }
+
   return (
     <main>
       <div className="container mx-auto px-4 py-8 text-center bg-gray-800 rounded-lg shadow-lg">
-        <h1 className="text-5xl font-bold mb-4 text-indigo-400">Planisphere</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-5xl font-bold text-indigo-400">Planisphere</h1>
+          <Button 
+            variant="outline" 
+            onClick={() => supabase.auth.signOut()}
+            className="text-indigo-400"
+          >
+            Sign Out
+          </Button>
+        </div>
         <blockquote className="italic mb-8 text-lg">"Your future is scheduled here."</blockquote>
         <div>
           <Calendar />
