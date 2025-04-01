@@ -5,6 +5,7 @@ import { Calendar } from "../components/Calendar";
 import { AuthForm } from "../components/auth/AuthForm";
 import { Button } from "../components/ui/button"; // Fix the import path
 import { supabase } from "../utils/supabase";
+import { Profile } from "../components/Profile";
 
 const CalendarPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -45,19 +46,21 @@ const CalendarPage = () => {
 
   return (
     <main>
-      <div className="container mx-auto px-4 py-8 text-center bg-gray-800 rounded-lg shadow-lg">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-5xl font-bold text-indigo-400">Planisphere</h1>
-          <Button 
-            variant="outline" 
-            onClick={() => supabase.auth.signOut()}
-            className="text-indigo-400"
-          >
-            Sign Out
-          </Button>
+      <div className="container mx-auto px-4 py-8 space-y-6">
+        <div className="bg-gray-800 rounded-lg shadow-lg">
+          <div className="flex justify-between items-center p-4">
+            <h1 className="text-5xl font-bold text-indigo-400">Planisphere</h1>
+            <Button 
+              variant="outline" 
+              onClick={() => supabase.auth.signOut()}
+              className="text-indigo-400"
+            >
+              Sign Out
+            </Button>
+          </div>
+          <Profile />
         </div>
-        <blockquote className="italic mb-8 text-lg">"Your future is scheduled here."</blockquote>
-        <div>
+        <div className="bg-gray-800 rounded-lg shadow-lg">
           <Calendar />
         </div>
       </div>

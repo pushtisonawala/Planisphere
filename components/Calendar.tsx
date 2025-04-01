@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
+import { supabase } from "../utils/supabase";
 import { CalendarGrid } from "./CalendarGrid";
 import { EventModal } from "./EventModal";
 import { EventList } from "./EventList";
@@ -16,17 +17,61 @@ export const Calendar: React.FC = () => {
   const [events, setEvents] = useState<DayEvents>({});
   const [showModal, setShowModal] = useState(false);
   const eventSectionRef = useRef<HTMLDivElement>(null);
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error'>('synced');
 
   useEffect(() => {
-    const storedEvents = localStorage.getItem("calendarEvents");
-    if (storedEvents) {
-      setEvents(JSON.parse(storedEvents));
-    }
+    const loadEvents = async () => {
+      try {
+        setSyncStatus('syncing');
+        const { data: events, error } = await supabase
+          .from('events')
+          .select('*')
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        const eventsByDate = events?.reduce((acc: DayEvents, event) => {
+          if (!acc[event.date]) {
+            acc[event.date] = [];
+          }
+          acc[event.date].push({
+            id: event.id,
+            name: event.name,
+            startTime: event.start_time,
+            endTime: event.end_time,
+            description: event.description,
+            category: event.category,
+          });
+          return acc;
+        }, {});
+
+        setEvents(eventsByDate || {});
+        setSyncStatus('synced');
+      } catch (error) {
+        console.error('Error loading events:', error);
+        setSyncStatus('error');
+      }
+    };
+
+    loadEvents();
+
+    const channel = supabase
+      .channel('events_channel')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'events' 
+        }, 
+        payload => {
+          loadEvents();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem("calendarEvents", JSON.stringify(events));
-  }, [events]);
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -38,7 +83,6 @@ export const Calendar: React.FC = () => {
 
   const handleDayClickAction = (date: Date) => {
     setSelectedDate(date);
-    // Add smooth scroll after state update
     setTimeout(() => {
       eventSectionRef.current?.scrollIntoView({ 
         behavior: 'smooth',
@@ -53,25 +97,44 @@ export const Calendar: React.FC = () => {
     }
   };
 
-  const handleSaveEventAction = (event: Event) => {
+  const handleSaveEventAction = async (event: Event) => {
     if (selectedDate) {
-      const dateKey = formatDate(selectedDate);
-      const updatedEvents = { ...events };
-      if (!updatedEvents[dateKey]) {
-        updatedEvents[dateKey] = [];
+      try {
+        setSyncStatus('syncing');
+        const { error } = await supabase
+          .from('events')
+          .insert({
+            date: formatDate(selectedDate),
+            name: event.name,
+            start_time: event.startTime,
+            end_time: event.endTime,
+            description: event.description,
+            category: event.category,
+          });
+
+        if (error) throw error;
+        setShowModal(false);
+        setSyncStatus('synced');
+      } catch (error) {
+        console.error('Error saving event:', error);
+        setSyncStatus('error');
       }
-      updatedEvents[dateKey].push(event);
-      setEvents(updatedEvents);
-      setShowModal(false);
     }
   };
 
-  const handleDeleteEventAction = (eventId: string) => {
-    if (selectedDate) {
-      const dateKey = formatDate(selectedDate);
-      const updatedEvents = { ...events };
-      updatedEvents[dateKey] = updatedEvents[dateKey].filter((e) => e.id !== eventId);
-      setEvents(updatedEvents);
+  const handleDeleteEventAction = async (eventId: string) => {
+    try {
+      setSyncStatus('syncing');
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) throw error;
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      setSyncStatus('error');
     }
   };
 
@@ -126,12 +189,16 @@ export const Calendar: React.FC = () => {
             <Button onClick={() => handleExport('json')}>Export JSON</Button>
             <Button onClick={() => handleExport('csv')}>Export CSV</Button>
           </div>
+          <div className="text-sm text-gray-400">
+            {syncStatus === 'syncing' && 'Syncing...'}
+            {syncStatus === 'error' && 'Sync error'}
+          </div>
         </div>
         <CalendarGrid
           currentDate={currentDate}
           onDayClickAction={handleDayClickAction}
           events={events}
-          selectedDate={selectedDate}  // Add this prop
+          selectedDate={selectedDate}
         />
       </div>
 
