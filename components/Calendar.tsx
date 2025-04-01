@@ -215,59 +215,81 @@ export const Calendar: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 p-8 flex flex-col items-center">
-      <div className="max-w-4xl w-full bg-gray-800 rounded-lg shadow-lg p-6">
-        <div className="p-4 flex justify-between items-center border-b border-gray-700">
-          <h1 className="text-3xl font-bold text-indigo-300">
+    <div className="bg-gray-800/50 rounded-lg shadow-lg overflow-hidden backdrop-blur-sm">
+      {/* Calendar Header */}
+      <div className="p-6 border-b border-gray-700/50">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
             {currentDate.toLocaleString("default", { month: "long", year: "numeric" })}
-          </h1>
-          <div className="flex space-x-4">
-            <Button variant="outline" onClick={handlePrevMonth}>
-              Previous
-            </Button>
-            <Button variant="outline" onClick={handleNextMonth}>
-              Next
-            </Button>
-            <Button onClick={() => handleExport('json')}>Export JSON</Button>
-            <Button onClick={() => handleExport('csv')}>Export CSV</Button>
-          </div>
-          <div className="text-sm text-gray-400">
-            {syncStatus === 'syncing' && 'Syncing...'}
-            {syncStatus === 'error' && 'Sync error'}
+          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex space-x-2">
+              <Button variant="outline" size="sm" onClick={handlePrevMonth}>
+                ← Previous
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleNextMonth}>
+                Next →
+              </Button>
+            </div>
+            <div className="flex space-x-2">
+              <Button size="sm" onClick={() => handleExport('json')} className="bg-indigo-600/80 hover:bg-indigo-500">
+                Export JSON
+              </Button>
+              <Button size="sm" onClick={() => handleExport('csv')} className="bg-purple-600/80 hover:bg-purple-500">
+                Export CSV
+              </Button>
+            </div>
           </div>
         </div>
-        
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="w-full space-y-6">
-            <CalendarGrid
-              currentDate={currentDate}
-              onDayClickAction={handleDayClickAction}
-              events={events}
-              selectedDate={selectedDate}
-            />
-
-            {selectedDate && (
-              <div 
-                ref={eventSectionRef}
-                className="mt-6 max-w-4xl w-full bg-gray-800 rounded-lg shadow-lg p-6 scroll-mt-8"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-indigo-300">
-                    Events for {selectedDate.toDateString()}
-                  </h2>
-                  <Button onClick={handleAddEvent}>Add Event</Button>
-                </div>
-                <EventList
-                  events={events[formatDate(selectedDate)] || []}
-                  onDeleteEventAction={handleDeleteEventAction}
-                  date={formatDate(selectedDate)}
-                />
-              </div>
-            )}
-          </div>
-        </DragDropContext>
+        <div className="mt-2 text-sm text-gray-400 text-center">
+          {syncStatus === 'syncing' && (
+            <span className="animate-pulse flex items-center justify-center gap-2">
+              <span className="w-2 h-2 bg-indigo-400 rounded-full"></span>
+              Syncing...
+            </span>
+          )}
+          {syncStatus === 'error' && 'Sync error'}
+        </div>
       </div>
 
+      {/* Calendar Grid */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="p-6">
+          <CalendarGrid
+            currentDate={currentDate}
+            onDayClickAction={handleDayClickAction}
+            events={events}
+            selectedDate={selectedDate}
+          />
+        </div>
+
+        {/* Selected Day Events */}
+        {selectedDate && (
+          <div 
+            ref={eventSectionRef}
+            className="border-t border-gray-700/50 bg-gray-800/30 p-6 backdrop-blur-sm"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                Events for {selectedDate.toDateString()}
+              </h3>
+              <Button 
+                onClick={handleAddEvent}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
+              >
+                Add Event
+              </Button>
+            </div>
+            <EventList
+              events={events[formatDate(selectedDate)] || []}
+              onDeleteEventAction={handleDeleteEventAction}
+              date={formatDate(selectedDate)}
+            />
+          </div>
+        )}
+      </DragDropContext>
+
+      {/* Event Modal */}
       {showModal && selectedDate && (
         <EventModal
           onCloseAction={() => setShowModal(false)}
