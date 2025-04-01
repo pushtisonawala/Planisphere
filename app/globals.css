@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom animations and styles */
+@layer utilities {
+  .animate-gradient-xy {
+    animation: gradient-xy 15s ease infinite;
+    background-size: 400% 400%;
+  }
+
+  .animate-text {
+    animation: text-shimmer 3s ease-in-out infinite alternate;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-in-out;
+  }
+
+  .stars, .stars2, .stars3 {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: transparent url('https://www.transparenttextures.com/patterns/stars.png') repeat top center;
+    z-index: 0;
+  }
+
+  .stars2 {
+    animation: move-background 100s linear infinite;
+    opacity: 0.5;
+  }
+
+  .stars3 {
+    animation: move-background 150s linear infinite;
+    opacity: 0.3;
+  }
+}
+
+@keyframes gradient-xy {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes text-shimmer {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+
+@keyframes move-background {
+  from { transform: translate3d(0px, 0px, 0px); }
+  to { transform: translate3d(1000px, 0px, 0px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}

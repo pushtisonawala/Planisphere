@@ -6,6 +6,8 @@ import { UserProfile } from '../types/profile';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 
+const DEFAULT_AVATAR = 'https://t4.ftcdn.net/jpg/05/89/93/27/360_F_589932782_vQAEAZhHnq1QCGu5ikwrYaQD0Mmurm0N.jpg';
+
 export const Profile: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -158,59 +160,109 @@ export const Profile: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-      <div className="flex items-center space-x-4 mb-4">
-        <div className="relative">
-          <img
-            src={avatarUrl || 'default-avatar.png'}
-            alt="Profile"
-            className="w-20 h-20 rounded-full"
-          />
-          {isEditing && (
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarUpload}
-              className="absolute inset-0 opacity-0 cursor-pointer"
-            />
-          )}
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-indigo-300">
-            {profile?.display_name || 'User Profile'}
-          </h2>
-          <p className="text-gray-400">Timezone: {profile?.timezone}</p>
+    <div className="bg-gray-800/50 backdrop-blur-md rounded-xl border border-gray-700/50 overflow-hidden">
+      {/* Profile Header */}
+      <div className="relative h-24 bg-gradient-to-r from-indigo-600/30 to-purple-600/30">
+        <div className="absolute -bottom-10 left-6">
+          <div className="relative group">
+            <div className="w-20 h-20 rounded-full border-4 border-gray-800 overflow-hidden bg-gray-700">
+              <img
+                src={avatarUrl || DEFAULT_AVATAR}
+                alt="Profile"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = DEFAULT_AVATAR;
+                }}
+              />
+            </div>
+            {isEditing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+                <span className="text-white text-xs">Change</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {isEditing ? (
+      {/* Profile Content */}
+      <div className="pt-12 p-6">
         <div className="space-y-4">
-          <Input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Display Name"
-            className="w-full bg-gray-700 text-white"
-          />
-          <select
-            value={timezone}
-            onChange={(e) => setTimezone(e.target.value)}
-            className="w-full p-2 bg-gray-700 text-white rounded"
-          >
-            {Intl.supportedValuesOf('timeZone').map((tz) => (
-              <option key={tz} value={tz}>{tz}</option>
-            ))}
-          </select>
-          <div className="flex space-x-2">
-            <Button onClick={handleUpdateProfile}>Save</Button>
-            <Button variant="outline" onClick={() => setIsEditing(false)}>
-              Cancel
-            </Button>
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-bold text-indigo-300">
+                {profile?.display_name || 'User Profile'}
+              </h2>
+              <p className="text-gray-400 text-sm">{profile?.timezone}</p>
+            </div>
+            {!isEditing && (
+              <Button 
+                onClick={() => setIsEditing(true)}
+                variant="outline"
+                className="text-sm"
+              >
+                Edit Profile
+              </Button>
+            )}
           </div>
+
+          {isEditing ? (
+            <div className="space-y-4 animate-fade-in">
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">Display Name</label>
+                <Input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Display Name"
+                  className="w-full bg-gray-700/50 border-gray-600/50 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">Timezone</label>
+                <select
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="w-full p-2 bg-gray-700/50 border border-gray-600/50 text-white rounded focus:ring-1 focus:ring-indigo-500"
+                >
+                  {Intl.supportedValuesOf('timeZone').map((tz) => (
+                    <option key={tz} value={tz}>{tz}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex space-x-2 pt-2">
+                <Button 
+                  onClick={handleUpdateProfile}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
+                >
+                  Save Changes
+                </Button>
+                <Button variant="outline" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="border-t border-gray-700/50 mt-4 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-700/30 p-3 rounded-lg">
+                  <p className="text-gray-400 text-xs">Account Type</p>
+                  <p className="text-indigo-300">Free Plan</p>
+                </div>
+                <div className="bg-gray-700/30 p-3 rounded-lg">
+                  <p className="text-gray-400 text-xs">Events Created</p>
+                  <p className="text-indigo-300">0</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      ) : (
-        <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
-      )}
+      </div>
     </div>
   );
 };
